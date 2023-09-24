@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "193651702264",
+    "project_id": "airbotfinal",
+    "storage_bucket": "airbotfinal.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:193651702264:android:3b159230aaa4470e6efe0d",
+        "android_client_info": {
+          "package_name": "com.harry9425.airbot_final"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXRzbZZHcGDzXH035dKuuRIvHfEDMqVSM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
