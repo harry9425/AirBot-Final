@@ -1,16 +1,18 @@
 import 'dart:async';
-import 'package:airbot_final/logistics/pickup_dropup/quickDropPage.dart';
-import 'package:airbot_final/modelClasses/shopsclass.dart';
+import 'dart:convert';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:airbot_final/utils/colors.dart';
-import 'package:airbot_final/utils/marqueewidget.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:rive/rive.dart';
-import 'package:dotted_line/dotted_line.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import '../modelClasses/shopsclass.dart';
+import '../modelClasses/userclass.dart';
+import '../utils/marqueewidget.dart';
 class loghomePage extends StatefulWidget {
   const loghomePage({super.key});
 
@@ -20,14 +22,85 @@ class loghomePage extends StatefulWidget {
 
 class _loghomePageState extends State<loghomePage> {
 
+  var dronecnt=0;
+  var CurrentRank="Loading..";
+  var nextRidesgap="Loading..";
+  Color rankcolour=Colors.grey;
+  IconData ranklogo=Icons.area_chart_rounded;
   var issidemenuopen = false;
   LatLng currpos = LatLng(20.5937, 78.9629);
   Completer<GoogleMapController> controller = Completer();
   var auth = FirebaseAuth.instance;
   ItemScrollController itemScrollController = ItemScrollController();
-  DatabaseReference database = FirebaseDatabase.instance.reference();
   List<ShopModel> list = [];
   var laoding = true;
+  BitmapDescriptor markericon = BitmapDescriptor.defaultMarker;
+  String fetchaddress="Please update your Location..";
+  double radiusofrange = 2;
+  late var curruser;
+  UserModel mainuser=UserModel.empty();
+  final List<Marker> _markers = [];
+  var database=FirebaseDatabase.instance.reference();
+  var gname="Loading...";
+  var totalrides="0";
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    database.keepSynced(true);
+    if(auth.currentUser!=null) {
+      curruser = auth.currentUser?.uid;
+      final ref = FirebaseDatabase.instance.ref().child("Users");
+      ref.keepSynced(true);
+      ref.child(curruser).get().then((value){
+        if (value.exists) {
+          UserModel userModel = UserModel.empty();
+          userModel.name = value.child('name').value.toString() ?? '';
+          userModel.id = value.child('id').value.toString() ?? '';
+          userModel.uderdp = value.child('userdp').value.toString() ?? '';
+          fetchaddress = value.child('coor').child('address').value.toString() ?? 'Please update your Location..';
+          var lat=value.child('coor').child('latitude').value.toString() ?? '20.5937';
+          var lng=value.child('coor').child("longitude").value.toString() ?? '78.9629';
+          totalrides = value.child('totalRides').value.toString() ?? '0';
+          double latitude = double.tryParse(lat) ?? 20.5937; // Use 0.0 as a default value if parsing fails
+          double longitude = double.tryParse(lng) ?? 78.9629;
+          currpos=LatLng(latitude,longitude);
+          _markers.clear();
+          _markers.add(
+              Marker(
+                markerId: MarkerId(curruser),
+                position: LatLng(latitude, longitude,),
+                infoWindow: InfoWindow(
+                  title: "You",
+                ),
+                icon: markericon,
+              )
+          );
+          updatecamera(latitude, longitude);
+          mainuser=userModel;
+          gname="Hello User";
+          int time=TimeOfDay.now().hour;
+          if(time<12) gname="Good Morning "+ mainuser.name;
+          else if(time<=17) gname="Good Afternoon "+ mainuser.name;
+          else gname="Good Evening "+ mainuser.name;
+          Fluttertoast.showToast(msg: totalrides.toString());
+          getRank(totalrides);
+        }
+      });
+    }
+    else{
+      Navigator.pushNamedAndRemoveUntil(context,"welcome",(route) => false);
+    }
+  }
+
+  updatecamera(var lat,var lng) async {
+    GoogleMapController googleMapController = await controller.future;
+    googleMapController.animateCamera(CameraUpdate.newCameraPosition(
+      CameraPosition(
+          target: LatLng(lat, lng), zoom: 15.5),
+    ));
+  }
 
   @override
   Future<void> didChangeDependencies() async {
@@ -57,6 +130,18 @@ class _loghomePageState extends State<loghomePage> {
         print('No data available');
       }
     });
+    int cnt=0;
+    database.child('drone').onValue.listen((event) {
+      cnt=0;
+      if (event.snapshot.value != null) {
+        for(DataSnapshot snapshot in event.snapshot.children){
+          if(snapshot.child("currstatus").value.toString()=="1") cnt++;
+        }
+        setState(() {
+          dronecnt=cnt;
+        });
+      }
+    });
   }
 
   @override
@@ -69,11 +154,6 @@ class _loghomePageState extends State<loghomePage> {
         .of(context)
         .size
         .height;
-    int time=TimeOfDay.now().hour;
-    var gname="Hello User";
-    if(time<12) gname="Good Morning Hitansh";
-    else if(time<=5) gname="Good Afternoon Hitansh";
-    else gname="Good Evening Hitansh";
     return Scaffold(
       backgroundColor: Colors.white,
         body: Stack(
@@ -156,10 +236,9 @@ class _loghomePageState extends State<loghomePage> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  Icon(Icons.area_chart_rounded, color: Colors
-                                      .white, size: 20,),
+                                  Icon(Icons.area_chart_rounded, color: rankcolour, size: 20,),
                                   SizedBox(width: 7,),
-                                  Text("Blue", style: TextStyle(
+                                  Text(CurrentRank, style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w400,
                                       fontSize: 12),),
@@ -197,7 +276,7 @@ class _loghomePageState extends State<loghomePage> {
                                     height: 20,
                                   ),
                                   SizedBox(width: 6,),
-                                  Text("4 rides away", style: TextStyle(
+                                  Text(nextRidesgap, style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w400,
                                       fontSize: 12),),
@@ -379,7 +458,7 @@ class _loghomePageState extends State<loghomePage> {
                                               ),
                                               SizedBox(height: 5),
                                               Text(
-                                                "H.12 shani-mandir, ambegoan back, 56 Pune Madya Pradesh 458001",
+                                                fetchaddress,
                                                 style: TextStyle(
                                                   color: Colors.black,
                                                   fontWeight: FontWeight.w600,
@@ -400,20 +479,19 @@ class _loghomePageState extends State<loghomePage> {
                                             child: Container(
                                               height: screenheight * 0.08,
                                               // Set the height dynamically
-                                              child: GoogleMap(
+                                              child:GoogleMap(
                                                 initialCameraPosition: CameraPosition(
-                                                  zoom: 16,
-                                                  target: LatLng(
-                                                      18.4529, 73.8652),
+                                                  zoom: 18,
+                                                  target: LatLng(20.5937, 78.9629),
                                                 ),
-                                                zoomControlsEnabled: false,
-                                                zoomGesturesEnabled: false,
+                                                markers: Set<Marker>.of(_markers),
                                                 mapType: MapType.hybrid,
                                                 compassEnabled: true,
-                                                onMapCreated: (
-                                                    GoogleMapController c) {
+                                                zoomGesturesEnabled: false,
+                                                onMapCreated: (GoogleMapController c) {
                                                   controller.complete(c);
                                                 },
+                                                zoomControlsEnabled: false,
                                               ),
                                             ),
                                           ),
@@ -432,19 +510,24 @@ class _loghomePageState extends State<loghomePage> {
                                       mainAxisAlignment: MainAxisAlignment
                                           .spaceBetween,
                                       children: [
-                                        Text(
-                                          "change",
-                                          style: TextStyle(
-                                            color: Colors.blueAccent,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 13,
+                                        GestureDetector(
+                                          onTap: (){
+                                            showSyncLocationDialog(context);
+                                          },
+                                          child: Text(
+                                            "change",
+                                            style: TextStyle(
+                                              color: Colors.blueAccent,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                            ),
+                                            softWrap: true, // Enable soft wrap for "Pickup Point"
                                           ),
-                                          softWrap: true, // Enable soft wrap for "Pickup Point"
                                         ),
                                         Row(
                                           children: [
                                             Text(
-                                              "nearby 2 ",
+                                              "nearby "+dronecnt.toString(),
                                               style: TextStyle(
                                                 color: Colors.grey,
                                                 fontWeight: FontWeight.w600,
@@ -454,7 +537,7 @@ class _loghomePageState extends State<loghomePage> {
                                             ),
                                             Image.asset(
                                               "assets/images/drone.png",
-                                              color: Colors.grey,
+                                              color: (dronecnt==0)?Colors.grey:Colors.blueAccent,
                                               width: 20,
                                               height: 20,
                                             ),
@@ -650,5 +733,187 @@ class _loghomePageState extends State<loghomePage> {
             ]
         )
     );
+  }
+
+  Future<bool> _getCurrentPosition() async {
+    final hasPermission = await _handleLocationPermission();
+    if (!hasPermission) return false;
+    await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high)
+        .then((Position position) async {
+      GoogleMapController googleMapController = await controller.future;
+      googleMapController.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(
+            target: LatLng(position.latitude, position.longitude), zoom: 15.5),
+      ));
+      currpos=LatLng(position.latitude, position.longitude);
+      _markers.clear();
+      _markers.add(
+          Marker(
+            markerId: MarkerId(curruser),
+            position: LatLng(position.latitude, position.longitude,),
+            infoWindow: InfoWindow(
+              title: "You",
+            ),
+            icon: markericon,
+          )
+      );
+      var lat=position.latitude;
+      var lng=position.longitude;
+      String _host = 'https://maps.google.com/maps/api/geocode/json';
+      final url = '$_host?key=AIzaSyCyTZJqntXd2VbJaw532eRiPVyBDek8Q5k&language=en&latlng=$lat,$lng';
+      if(lat != null && lng != null){
+        var response = await http.get(Uri.parse(url));
+        if(response.statusCode == 200) {
+          Map data = jsonDecode(response.body);
+          String _formattedAddress = data["results"][0]["formatted_address"];
+          print("response ==== $_formattedAddress");
+          fetchaddress=_formattedAddress;
+        } else{
+            fetchaddress="Sorry Not able to get exact address of your location..";
+        }
+      } else {
+          fetchaddress="Sorry Not able to get exact address of your location..";
+      }
+
+      Map<String, dynamic> map = {
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'address': fetchaddress
+      };
+      database.child("Users").child(curruser).child("coor").set(map);
+      setState(() {});
+      return true;
+    }).catchError((e) {
+      debugPrint(e);
+      print(e);
+      return false;
+    });
+    return true;
+  }
+  Future<bool> _handleLocationPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      Fluttertoast.showToast(msg: "Location services are disabled. Please enable the services");
+      return false;
+    }
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        Fluttertoast.showToast(msg: "Location permissions are disabled");
+        return false;
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      Fluttertoast.showToast(msg:
+      'Location permissions are permanently denied, we cannot request permissions.');
+      return false;
+    }
+    return true;
+  }
+
+  void showSyncLocationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          child: Container(
+            height: 350,
+            child: Column(
+              children: [
+                SizedBox(height: 20),
+                Image.asset(
+                  "assets/images/location.png",
+                  height: 200,
+                  width: 200,
+                ),
+                SizedBox(height: 20),
+                Text(
+                  'Sync your location',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    setState((){});
+                    Fluttertoast.showToast(msg: "Fetching Location...");
+                    _getCurrentPosition();
+                  },
+                  child: Text(
+                    'Sync Now',
+                    style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  void _signOut() {
+    FirebaseAuth.instance.signOut().whenComplete((){
+      Navigator.pushNamedAndRemoveUntil(context, 'welcome', (route) => false);
+    }).onError((error, stackTrace){
+      print(error.toString());
+    });
+  }
+  void getRank(rides){
+    int total=int.tryParse(rides)??0;
+    if(total<2){
+      rankcolour=Colors.white;
+      CurrentRank="Bronze";
+      nextRidesgap="${(2-total)} calls ways";
+    }
+    else if(total==2){
+      rankcolour=Colors.blueAccent;
+      CurrentRank="Silver";
+      nextRidesgap="${(6-total)} calls ways";
+    }
+    else if(total<6){
+      rankcolour=Colors.blueAccent;
+      CurrentRank="Silver";
+      nextRidesgap="${(6-total)} calls ways";
+    }
+    else if(total==6){
+      rankcolour=Colors.greenAccent;
+      CurrentRank="Gold";
+      nextRidesgap="${(12-total)} calls ways";
+    }
+    else if(total<12){
+      rankcolour=Colors.greenAccent;
+      CurrentRank="Gold";
+      nextRidesgap="${(12-total)} calls ways";
+    }
+    else if(total==12){
+      rankcolour=Colors.redAccent;
+      CurrentRank="Diamond";
+      nextRidesgap="Coming Soon..";
+    }
+    else{
+      rankcolour=Colors.redAccent;
+      CurrentRank="Diamond";
+      nextRidesgap="Coming Soon..";
+    }
+    setState(() {});
   }
 }

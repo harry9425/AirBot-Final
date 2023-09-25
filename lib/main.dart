@@ -1,16 +1,16 @@
-import 'package:airbot_final/Med/MedHomePage.dart';
-import 'package:airbot_final/authentication/introScreen.dart';
-import 'package:airbot_final/logistics/pickup_dropup/hourlyDropPage.dart';
-import 'package:airbot_final/logistics/pickup_dropup/quickDropPage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:airbot_final/logistics/LoghomePage.dart';
-import 'package:airbot_final/bootup/splashScreen.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'Med/MedHomePage.dart';
+import 'authentication/introScreen.dart';
 import 'authentication/loginPage.dart';
 import 'authentication/signupPage.dart';
+import 'bootup/splashScreen.dart';
 import 'bootup/welcomePage.dart';
+import 'logistics/LoghomePage.dart';
+import 'logistics/pickup_dropup/hourlyDropPage.dart';
+import 'logistics/pickup_dropup/quickDropPage.dart';
 import 'logistics/pickup_dropup/scheduleDropPage.dart';
 
 void main() async {

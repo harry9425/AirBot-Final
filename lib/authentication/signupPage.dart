@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:airbot_final/modelClasses/userclass.dart';
+import 'package:airBot/modelClasses/userclass.dart';
 import 'package:intl/src/intl/date_format.dart';
-import 'package:airbot_final/utils/colors.dart';
+import 'package:airBot/utils/colors.dart';
 
 class signupPage extends StatefulWidget {
   const signupPage({super.key});

@@ -1,7 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:airbot_final/logistics/LoghomePage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:airBot/logistics/LoghomePage.dart';
+import 'package:airBot/modelClasses/userclass.dart';
+import 'package:intl/src/intl/date_format.dart';
+import 'package:airBot/utils/colors.dart';
 
 class splashScreen extends StatefulWidget {
   const splashScreen({super.key});
@@ -39,21 +43,15 @@ class _splashScreenState extends State<splashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Column(
-          children: [
-            Expanded(
-              child: Container(
-                child: Text(
-                  "SPLASH SCREEN",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 25,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+        child: Container(
+          child: Text(
+            "SPLASH SCREEN",
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
             ),
-          ],
+          ),
         ),
       ),
     );

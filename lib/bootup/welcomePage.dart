@@ -1,7 +1,15 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:airBot/logistics/LoghomePage.dart';
+import 'package:airBot/modelClasses/userclass.dart';
+import 'package:intl/src/intl/date_format.dart';
+import 'package:airBot/utils/colors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 class welcomePage extends StatefulWidget {
   const welcomePage({super.key});
 
@@ -278,35 +286,40 @@ class _welcomePageState extends State<welcomePage> {
                 )
               ],
             ),
-            Expanded(child: Container(
-              margin: EdgeInsets.all(30),
-              padding: EdgeInsets.all(30),
-              width: screenwidth,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30)
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text("Medical", style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 50),softWrap: true,),
-                        SizedBox(width: 10,),
-                        Icon(Icons.local_hospital_outlined,color: Colors.redAccent,size: 60,),
-                      ],
-                    ),
-                    Text("Emergency", style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 50),softWrap: true,),
-                  ],
+            Expanded(child: GestureDetector(
+              onTap: (){
+                Navigator.pushNamed(context, "medhomePage");
+              },
+              child: Container(
+                margin: EdgeInsets.all(30),
+                padding: EdgeInsets.all(30),
+                width: screenwidth,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30)
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text("Medical", style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 50),softWrap: true,),
+                          SizedBox(width: 10,),
+                          Icon(Icons.local_hospital_outlined,color: Colors.redAccent,size: 60,),
+                        ],
+                      ),
+                      Text("Emergency", style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 50),softWrap: true,),
+                    ],
+                  ),
                 ),
               ),
             )),

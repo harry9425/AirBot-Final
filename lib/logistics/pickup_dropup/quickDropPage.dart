@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:airbot_final/utils/marqueewidget.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -12,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import '../../modelClasses/userclass.dart';
+import '../../utils/marqueewidget.dart';
 
 class quickDropPage extends StatefulWidget {
   const quickDropPage({Key? key}) : super(key: key);
